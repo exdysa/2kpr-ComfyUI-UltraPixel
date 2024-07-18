@@ -27,7 +27,7 @@ from ..gdf import (
 )
 from torchtools.transforms import SmartCrop
 from fractions import Fraction
-from ..modules.effnet import EfficientNetEncoder
+# from ..modules.effnet import EfficientNetEncoder
 
 from ..modules.model_4stage_lite import StageC
 
@@ -68,8 +68,8 @@ import math
 import copy
 import random
 from ..modules.lora import apply_lora, apply_retoken, LoRA, ReToken
-from ..modules import ControlNet, ControlNetDeliverer
-from ..modules import controlnet_filters
+# from ..modules import ControlNet, ControlNetDeliverer
+# from ..modules import controlnet_filters
 
 Image.MAX_IMAGE_PIXELS = None
 torch.manual_seed(8432)
@@ -115,17 +115,17 @@ class WurstCore(TrainingCore, DataCore, WarpCore):
         clip_text_model_name: str = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
 
         # CHECKPOINT PATHS
-        effnet_checkpoint_path: str = EXPECTED
-        previewer_checkpoint_path: str = EXPECTED
+       #  effnet_checkpoint_path: str = EXPECTED
+       #  previewer_checkpoint_path: str = EXPECTED
         # trans_inr_ckpt: str = EXPECTED
         generator_checkpoint_path: str = None
-        controlnet_checkpoint_path: str = EXPECTED
+        # controlnet_checkpoint_path: str = EXPECTED
 
         # controlnet settings
-        controlnet_blocks: list = EXPECTED
-        controlnet_filter: str = EXPECTED
-        controlnet_filter_params: dict = None
-        controlnet_bottleneck_mode: str = None
+        # controlnet_blocks: list = EXPECTED
+        # controlnet_filter: str = EXPECTED
+        # controlnet_filter_params: dict = None
+        # controlnet_bottleneck_mode: str = None
 
         # gdf customization
         adaptive_loss_weight: str = None
@@ -146,7 +146,7 @@ class WurstCore(TrainingCore, DataCore, WarpCore):
         # previewer: nn.Module = EXPECTED
         train_norm: nn.Module = EXPECTED
         # train_norm_ema: nn.Module = EXPECTED
-        controlnet: nn.Module = EXPECTED
+       #  controlnet: nn.Module = EXPECTED
 
     @dataclass(frozen=True)
     class Schedulers(WarpCore.Schedulers):
@@ -156,8 +156,8 @@ class WurstCore(TrainingCore, DataCore, WarpCore):
     class Extras(TrainingCore.Extras, DataCore.Extras, WarpCore.Extras):
         gdf: GDF = EXPECTED
         sampling_configs: dict = EXPECTED
-        effnet_preprocess: torchvision.transforms.Compose = EXPECTED
-        controlnet_filter: controlnet_filters.BaseFilter = EXPECTED
+        # effnet_preprocess: torchvision.transforms.Compose = EXPECTED
+        # controlnet_filter: controlnet_filters.BaseFilter = EXPECTED
 
     info: TrainingCore.Info
     config: Config
@@ -189,13 +189,13 @@ class WurstCore(TrainingCore, DataCore, WarpCore):
                 self.info.adaptive_loss["bucket_losses"]
             )
 
-        effnet_preprocess = torchvision.transforms.Compose(
-            [
-                torchvision.transforms.Normalize(
-                    mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
-                )
-            ]
-        )
+       # effnet_preprocess = torchvision.transforms.Compose(
+       #     [
+       #         torchvision.transforms.Normalize(
+       #             mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
+       #         )
+       #     ]
+       # )
 
         clip_preprocess = torchvision.transforms.Compose(
             [
@@ -224,12 +224,12 @@ class WurstCore(TrainingCore, DataCore, WarpCore):
             )
         else:
             transforms = None
-        controlnet_filter = getattr(controlnet_filters, self.config.controlnet_filter)(
+        # controlnet_filter = getattr(controlnet_filters, self.config.controlnet_filter)(
             self.device,
             **(
-                self.config.controlnet_filter_params
-                if self.config.controlnet_filter_params is not None
-                else {}
+               # self.config.controlnet_filter_params
+                #if self.config.controlnet_filter_params is not None
+               # else {}
             ),
         )
 
@@ -237,35 +237,35 @@ class WurstCore(TrainingCore, DataCore, WarpCore):
             gdf=gdf,
             sampling_configs=sampling_configs,
             transforms=transforms,
-            effnet_preprocess=effnet_preprocess,
+            # effnet_preprocess=effnet_preprocess,
             clip_preprocess=clip_preprocess,
-            controlnet_filter=controlnet_filter,
+            # controlnet_filter=controlnet_filter,
         )
 
-    def get_cnet(
-        self,
-        batch: dict,
-        models: Models,
-        extras: Extras,
-        cnet_input=None,
-        target_size=None,
-        **kwargs,
-    ):
+    #def get_cnet(
+    #    self,
+    #    batch: dict,
+    #    models: Models,
+    #    extras: Extras,
+    #    cnet_input=None,
+    #    target_size=None,
+    #    **kwargs,
+    #):
         images = batch["images"]
         if target_size is not None:
             images = Image.resize(images, target_size)
-        with torch.no_grad():
-            if cnet_input is None:
-                cnet_input = extras.controlnet_filter(images, **kwargs)
-            if isinstance(cnet_input, tuple):
-                cnet_input, cnet_input_preview = cnet_input
-            else:
-                cnet_input_preview = cnet_input
-            cnet_input, cnet_input_preview = cnet_input.to(
-                self.device
-            ), cnet_input_preview.to(self.device)
-        cnet = models.controlnet(cnet_input)
-        return cnet, cnet_input_preview
+        #with torch.no_grad():
+            # if cnet_input is None:
+            #     cnet_input = extras.controlnet_filter(images, **kwargs)
+            # if isinstance(cnet_input, tuple):
+            #     cnet_input, cnet_input_preview = cnet_input
+            # else:
+            #     cnet_input_preview = cnet_input
+            # cnet_input, cnet_input_preview = cnet_input.to(
+            #     self.device
+            # ), cnet_input_preview.to(self.device)
+        # cnet = models.controlnet(cnet_input)
+        # return cnet, cnet_input_preview
 
     def get_conditions(
         self,
@@ -452,14 +452,14 @@ class WurstCore(TrainingCore, DataCore, WarpCore):
         )
         """
 
-        controlnet = ControlNet(
-            c_in=extras.controlnet_filter.num_channels(),
-            proj_blocks=self.config.controlnet_blocks,
-            bottleneck_mode=self.config.controlnet_bottleneck_mode,
-        )
-        controlnet = controlnet.to(dtype).to("cpu")
-        controlnet = self.load_model(controlnet, "controlnet")
-        controlnet.backbone.eval().requires_grad_(True)
+        #controlnet = ControlNet(
+        #    c_in=extras.controlnet_filter.num_channels(),
+        #    proj_blocks=self.config.controlnet_blocks,
+        #    bottleneck_mode=self.config.controlnet_bottleneck_mode,
+        #)
+        #controlnet = controlnet.to(dtype).to("cpu")
+        #controlnet = self.load_model(controlnet, "controlnet")
+        #controlnet.backbone.eval().requires_grad_(True)
 
         return self.Models(
             # effnet=effnet,
@@ -471,7 +471,7 @@ class WurstCore(TrainingCore, DataCore, WarpCore):
             text_model=text_model,
             # image_model=image_model,
             # train_norm_ema=train_norm_ema,
-            controlnet=controlnet,
+            # controlnet=controlnet,
         )
 
     def setup_optimizers(
@@ -714,7 +714,7 @@ class WurstCore(TrainingCore, DataCore, WarpCore):
         if target_size is not None:
             images = F.interpolate(images, target_size)
             # images = apply_degradations(images)
-        return models.effnet(extras.effnet_preprocess(images))
+        #return models.effnet(extras.effnet_preprocess(images))
 
     def decode_latents(
         self, latents: torch.Tensor, batch: dict, models: Models, extras: Extras
@@ -1110,10 +1110,10 @@ class WurstCore(TrainingCore, DataCore, WarpCore):
                 is_unconditional=True,
                 eval_image_embeds=False,
             )
-            cnet, cnet_input = self.get_cnet(batch, models, extras)
-            conditions, unconditions = {**conditions, "cnet": cnet}, {
+            # cnet, cnet_input = self.get_cnet(batch, models, extras)
+            conditions, unconditions = {**conditions}, { #"cnet": cnet}, {
                 **unconditions,
-                "cnet": cnet,
+                #"cnet": cnet,
             }
 
             latents = self.encode_latents(batch, models, extras)
@@ -1287,7 +1287,7 @@ class WurstCore(TrainingCore, DataCore, WarpCore):
         # if 'generator' in self.models_to_save():
         models.generator.eval()
         models.trans_inr.eval()
-        models.controlnet.eval()
+        # models.controlnet.eval()
         with torch.no_grad():
 
             if self.is_main_node:
@@ -1307,12 +1307,12 @@ class WurstCore(TrainingCore, DataCore, WarpCore):
                     is_unconditional=True,
                     eval_image_embeds=False,
                 )
-                cnet, cnet_input = self.get_cnet(
-                    batch, models, extras, target_size=lr_shape
+                # cnet, cnet_input = self.get_cnet(
+                #    batch, models, extras, target_size=lr_shape
                 )
-                conditions, unconditions = {**conditions, "cnet": cnet}, {
+                conditions, unconditions = {**conditions} { #"cnet": cnet
                     **unconditions,
-                    "cnet": cnet,
+                    #"cnet": cnet,
                 }
 
                 # print('in line 885', self.is_main_node)
