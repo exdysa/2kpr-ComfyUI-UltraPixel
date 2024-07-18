@@ -24,7 +24,7 @@ def download_models(ultrapixel_directory, stablecascade_directory):
         ["effnet_encoder.safetensors", "stabilityai/stable-cascade"],
         ["stage_b_lite_bf16.safetensors", "stabilityai/stable-cascade"],
         ["stage_c_bf16.safetensors", "stabilityai/stable-cascade"],
-        ["controlnet/canny.safetensors", "stabilityai/stable-cascade"],
+        # ["controlnet/canny.safetensors", "stabilityai/stable-cascade"],
     ]
     for model in models:
         if model[1].startswith("stabilityai"):
@@ -67,9 +67,9 @@ class UltraPixelLoad:
                 "stage_a": (get_models("stage_a.safetensors"),),
                 "stage_b": (get_models("stage_b_lite_bf16.safetensors"),),
                 "stage_c": (get_models("stage_c_bf16.safetensors"),),
-                "effnet": (get_models("effnet_encoder.safetensors"),),
-                "previewer": (get_models("previewer.safetensors"),),
-                "controlnet": (get_models("controlnet/canny.safetensors"),),
+                # "effnet": (get_models("effnet_encoder.safetensors"),),
+                # "previewer": (get_models("previewer.safetensors"),),
+                # "controlnet": (get_models("controlnet/canny.safetensors"),),
                 "ultrapixel_directory": (
                     "STRING",
                     {
@@ -100,9 +100,9 @@ class UltraPixelLoad:
         stage_a,
         stage_b,
         stage_c,
-        effnet,
-        previewer,
-        controlnet,
+        # effnet,
+        # previewer,
+        # controlnet,
         ultrapixel_directory,
         stablecascade_directory,
     ):
@@ -112,9 +112,9 @@ class UltraPixelLoad:
             stage_a,
             stage_b,
             stage_c,
-            effnet,
-            previewer,
-            controlnet,
+            # effnet,
+            # previewer,
+            # controlnet,
             ultrapixel_directory,
             stablecascade_directory,
         )
@@ -154,18 +154,18 @@ class UltraPixelProcess:
                     "FLOAT",
                     {"default": 4.0, "min": 1.0, "max": 1000.0, "step": 0.1},
                 ),
-                "controlnet_weight": (
-                    "FLOAT",
-                    {"default": 0.7, "min": 0.01, "max": 10.0, "step": 0.01},
-                ),
+                # "controlnet_weight": (
+                #     "FLOAT",
+                #     {"default": 0.7, "min": 0.01, "max": 10.0, "step": 0.01},
+                # ),
                 "prompt": (
                     "STRING",
                     {"multiline": True, "dynamicPrompts": True},
                 ),
             },
-            "optional": {
-                "controlnet_image": ("IMAGE",),
-            },
+            # "optional": {
+            #     "controlnet_image": ("IMAGE",),
+            # },
         }
 
     RETURN_TYPES = (
@@ -188,9 +188,9 @@ class UltraPixelProcess:
         stage_b_cfg,
         stage_c_steps,
         stage_c_cfg,
-        controlnet_weight,
+        # controlnet_weight,
         prompt,
-        controlnet_image=None,
+        # controlnet_image=None,
     ):
         model.set_config(
             height,
@@ -202,9 +202,9 @@ class UltraPixelProcess:
             stage_b_cfg,
             stage_c_steps,
             stage_c_cfg,
-            controlnet_weight,
+            # controlnet_weight,
             prompt,
-            controlnet_image,
+            # controlnet_image,
         )
         image, edge_preview = model.process()
         return (image, edge_preview)

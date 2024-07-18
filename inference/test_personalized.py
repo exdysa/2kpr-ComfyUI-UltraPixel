@@ -160,8 +160,8 @@ if __name__ == "__main__":
                 
                 conditions_b = core_b.get_conditions(batch, models_b, extras_b, is_eval=True, is_unconditional=False)
                 unconditions_b = core_b.get_conditions(batch, models_b, extras_b, is_eval=True, is_unconditional=True)
-                conditions_b['effnet'] = sampled_c
-                unconditions_b['effnet'] = torch.zeros_like(sampled_c)
+                # conditions_b['effnet'] = sampled_c
+                # unconditions_b['effnet'] = torch.zeros_like(sampled_c)
                 print('STAGE B + A DECODING***************************')
         
                 with torch.cuda.amp.autocast(dtype=dtype):

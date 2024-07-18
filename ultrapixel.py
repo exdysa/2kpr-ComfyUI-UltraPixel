@@ -24,9 +24,9 @@ class UltraPixel:
         stage_a,
         stage_b,
         stage_c,
-        effnet,
-        previewer,
-        controlnet,
+        # effnet,
+        # previewer,
+        # controlnet,
         ultrapixel_directory,
         stablecascade_directory,
     ):
@@ -56,9 +56,9 @@ class UltraPixel:
         self.stage_a = os.path.join(self.stablecascade_path, stage_a)
         self.stage_b = os.path.join(self.stablecascade_path, stage_b)
         self.stage_c = os.path.join(self.stablecascade_path, stage_c)
-        self.effnet = os.path.join(self.stablecascade_path, effnet)
-        self.previewer = os.path.join(self.stablecascade_path, previewer)
-        self.controlnet = os.path.join(self.stablecascade_path, controlnet)
+        # self.effnet = os.path.join(self.stablecascade_path, effnet)
+        # self.previewer = os.path.join(self.stablecascade_path, previewer)
+        # elf.controlnet = os.path.join(self.stablecascade_path, controlnet)
 
     def set_config(
         self,
@@ -71,9 +71,9 @@ class UltraPixel:
         stage_b_cfg,
         stage_c_steps,
         stage_c_cfg,
-        controlnet_weight,
+        # controlnet_weight,
         prompt,
-        controlnet_image,
+        # controlnet_image,
     ):
         self.height = height
         self.width = width
@@ -84,9 +84,9 @@ class UltraPixel:
         self.stage_b_cfg = stage_b_cfg
         self.stage_c_steps = stage_c_steps
         self.stage_c_cfg = stage_c_cfg
-        self.controlnet_weight = controlnet_weight
+        # self.controlnet_weight = controlnet_weight
         self.prompt = prompt
-        self.controlnet_image = controlnet_image
+        # self.controlnet_image = controlnet_image
 
     def process(self):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -95,30 +95,30 @@ class UltraPixel:
 
         base_path = os.path.dirname(os.path.realpath(__file__))
 
-        if self.controlnet_image == None:
-            config_file = os.path.join(base_path, "configs/training/t2i.yaml")
-        else:
-            config_file = os.path.join(
-                base_path, "configs/training/cfg_control_lr.yaml"
-            )
+        # if self.controlnet_image == None:
+        config_file = os.path.join(base_path, "configs/training/t2i.yaml")
+        # else:
+        #    config_file = os.path.join(
+        #        base_path, "configs/training/cfg_control_lr.yaml"
+        #)
 
         with open(config_file, "r", encoding="utf-8") as file:
             loaded_config = yaml.safe_load(file)
-            loaded_config["effnet_checkpoint_path"] = self.effnet
-            loaded_config["previewer_checkpoint_path"] = self.previewer
+           # loaded_config["effnet_checkpoint_path"] = self.effnet
+           # loaded_config["previewer_checkpoint_path"] = self.previewer
             loaded_config["generator_checkpoint_path"] = self.stage_c
 
-        if self.controlnet_image == None:
-            core = WurstCoreC(config_dict=loaded_config, device=device, training=False)
-        else:
-            core = WurstCore_control_lrguide(
-                config_dict=loaded_config, device=device, training=False
-            )
+        # if self.controlnet_image == None:
+        core = WurstCoreC(config_dict=loaded_config, device=device, training=False)
+        # else:
+        #    core = WurstCore_control_lrguide(
+        #        config_dict=loaded_config, device=device, training=False
+        #    )
 
         config_file_b = os.path.join(base_path, "configs/inference/stage_b_1b.yaml")
         with open(config_file_b, "r", encoding="utf-8") as file:
             config_file_b = yaml.safe_load(file)
-            config_file_b["effnet_checkpoint_path"] = self.effnet
+         #   config_file_b["effnet_checkpoint_path"] = self.effnet
             config_file_b["stage_a_checkpoint_path"] = self.stage_a
             config_file_b["generator_checkpoint_path"] = self.stage_b
         core_b = WurstCoreB(config_dict=config_file_b, device=device, training=False)
@@ -126,7 +126,7 @@ class UltraPixel:
         extras = core.setup_extras_pre()
         models = core.setup_models(extras)
         models.generator.eval().requires_grad_(False)
-        # print("STAGE C READY")
+        print("STAGE C READY")
 
         extras_b = core_b.setup_extras_pre()
         models_b = core_b.setup_models(
@@ -136,7 +136,7 @@ class UltraPixel:
             text_model=models.text_model,
         )
         models_b.generator.bfloat16().eval().requires_grad_(False)
-        # print("STAGE B READY")
+        print("STAGE B READY")
 
         captions = [self.prompt]
         height, width = self.height, self.width
@@ -146,13 +146,13 @@ class UltraPixel:
         for k, v in sdd.items():
             collect_sd[k[7:]] = v
 
-        if self.controlnet_image == None:
-            models.train_norm.load_state_dict(collect_sd)
-        else:
-            models.train_norm.load_state_dict(collect_sd, strict=True)
-            models.controlnet.load_state_dict(
-                load_or_fail(self.controlnet), strict=True
-            )
+        #if self.controlnet_image == None:
+        models.train_norm.load_state_dict(collect_sd)
+        #else:
+        #    models.train_norm.load_state_dict(collect_sd, strict=True)
+        #    models.controlnet.load_state_dict(
+        #        load_or_fail(self.controlnet), strict=True
+        #    )
 
         models.generator.eval()
         models.train_norm.eval()
@@ -160,20 +160,20 @@ class UltraPixel:
         batch_size = 1
         edge_image = None
 
-        if self.controlnet_image != None:
-            self.controlnet_image = self.controlnet_image.squeeze(0)
-            self.controlnet_image = self.controlnet_image.permute(2, 0, 1)
-            images = (
-                resize_image(
-                    torchvision.transforms.functional.to_pil_image(
-                        self.controlnet_image.clamp(0, 1)
-                    ).convert("RGB")
-                )
-                .unsqueeze(0)
-                .expand(batch_size, -1, -1, -1)
-            )
-            batch = {"images": images}
-            cnet_multiplier = self.controlnet_weight  # 0.8 0.6 0.3  control strength
+        # if self.controlnet_image != None:
+        #     self.controlnet_image = self.controlnet_image.squeeze(0)
+        #     self.controlnet_image = self.controlnet_image.permute(2, 0, 1)
+        #    images = (
+        #        resize_image(
+        #            torchvision.transforms.functional.to_pil_image(
+        #                self.controlnet_image.clamp(0, 1)
+        #            ).convert("RGB")
+        #        )
+        #        .unsqueeze(0)
+        #        .expand(batch_size, -1, -1, -1)
+        #    )
+        #    batch = {"images": images}
+        #    cnet_multiplier = self.controlnet_weight  # 0.8 0.6 0.3  control strength
 
         height_lr, width_lr = get_target_lr_size(height / width, std_size=32)
         stage_c_latent_shape, stage_b_latent_shape = calculate_latent_sizes(
@@ -185,7 +185,7 @@ class UltraPixel:
 
         # Stage C Parameters
         extras.sampling_configs["cfg"] = self.stage_c_cfg
-        extras.sampling_configs["shift"] = 1 if self.controlnet_image == None else 2
+        extras.sampling_configs["shift"] = 1 # if self.controlnet_image == None else 2
         extras.sampling_configs["timesteps"] = self.stage_c_steps
         extras.sampling_configs["t_start"] = 1.0
         extras.sampling_configs["sampler"] = DDPMSampler(extras.gdf)
@@ -201,13 +201,13 @@ class UltraPixel:
                 models.generator.cpu()
                 torch.cuda.empty_cache()
                 models.text_model.cuda()
-                if self.controlnet_image != None:
-                    models.controlnet.cuda()
+                # if self.controlnet_image != None:
+                #    models.controlnet.cuda()
 
-                if self.controlnet_image == None:
-                    batch = {"captions": [caption] * batch_size}
-                else:
-                    batch["captions"] = [caption + " high quality"] * batch_size
+                # if self.controlnet_image == None:
+                batch = {"captions": [caption] * batch_size}
+                # else:
+                #    batch["captions"] = [caption + " high quality"] * batch_size
 
                 conditions = core.get_conditions(
                     batch,
@@ -227,19 +227,19 @@ class UltraPixel:
                     eval_image_embeds=False,
                 )
 
-                if self.controlnet_image != None:
-                    cnet, cnet_input = core.get_cnet(batch, models, extras)
-                    cnet_uncond = cnet
-                    conditions["cnet"] = [
-                        c.clone() * cnet_multiplier if c is not None else c
-                        for c in cnet
-                    ]
-                    unconditions["cnet"] = [
-                        c.clone() * cnet_multiplier if c is not None else c
-                        for c in cnet_uncond
-                    ]
-                    edge_images = show_images(cnet_input)
-                    edge_image = edge_images[0]
+                # if self.controlnet_image != None:
+                 #   cnet, cnet_input = core.get_cnet(batch, models, extras)
+                 #   cnet_uncond = cnet
+                 #   conditions["cnet"] = [
+                 #       c.clone() * cnet_multiplier if c is not None else c
+                 #       for c in cnet
+                 #   ]
+                 #   unconditions["cnet"] = [
+                 #       c.clone() * cnet_multiplier if c is not None else c
+                 #       for c in cnet_uncond
+                 #   ]
+                 #   edge_images = show_images(cnet_input)
+                 #   edge_image = edge_images[0]
 
                 conditions_b = core_b.get_conditions(
                     batch, models_b, extras_b, is_eval=True, is_unconditional=False
@@ -249,8 +249,8 @@ class UltraPixel:
                 )
 
                 models.text_model.cpu()
-                if self.controlnet_image != None:
-                    models.controlnet.cpu()
+                # if self.controlnet_image != None:
+                #     models.controlnet.cpu()
                 torch.cuda.empty_cache()
                 models.generator.cuda()
 
@@ -271,8 +271,8 @@ class UltraPixel:
                 models.generator.cpu()
                 torch.cuda.empty_cache()
 
-                conditions_b["effnet"] = sampled_c
-                unconditions_b["effnet"] = torch.zeros_like(sampled_c)
+               #  conditions_b["effnet"] = sampled_c
+               #  unconditions_b["effnet"] = torch.zeros_like(sampled_c)
                 print("STAGE B + A DECODING***************************")
 
                 with torch.cuda.amp.autocast(dtype=dtype):

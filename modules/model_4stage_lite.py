@@ -2,14 +2,8 @@ import torch
 from torch import nn
 import numpy as np
 import math
-from ..modules.common_ckpt import (
-    AttnBlock,
-    LayerNorm2d,
-    ResBlock,
-    FeedForwardBlock,
-    TimestepBlock,
-)
-from .controlnet import ControlNetDeliverer
+from ..modules.common_ckpt import AttnBlock, LayerNorm2d, ResBlock, FeedForwardBlock, TimestepBlock
+## from .controlnet import ControlNetDeliverer
 import torch.nn.functional as F
 from ..modules.inr_fea_res_lite import TransInr_withnorm as TransInr
 from ..modules.inr_fea_res_lite import ScaleNormalize_res
@@ -316,13 +310,13 @@ class StageC(nn.Module):
         self.norm_up_blocks.apply(self._init_weights)
         self.norm_down_blocks.apply(self._init_weights)
         for block in self.agg_net + self.agg_net_up:
-            # for block in level_block:
-            if isinstance(block, ResBlock) or isinstance(block, FeedForwardBlock):
-                block.channelwise[-1].weight.data *= np.sqrt(1 / sum(blocks[0]))
-            elif isinstance(block, TimestepBlock):
-                for layer in block.modules():
-                    if isinstance(layer, nn.Linear):
-                        nn.init.constant_(layer.weight, 0)
+            for block in self.level_block:
+                if isinstance(block, ResBlock) or isinstance(block, FeedForwardBlock):
+                    block.channelwise[-1].weight.data *= np.sqrt(1 / sum(self.blocks[0]))
+                elif isinstance(block, TimestepBlock):
+                    for layer in block.modules():
+                        if isinstance(layer, nn.Linear):
+                            nn.init.constant_(layer.weight, 0)
 
     def gen_r_embedding(self, r, max_positions=10000):
         r = r * max_positions
@@ -356,7 +350,7 @@ class StageC(nn.Module):
         x,
         r_embed,
         clip,
-        cnet=None,
+        ## cnet=None,
         require_q=False,
         lr_guide=None,
         r_emb_lite=None,
@@ -377,17 +371,17 @@ class StageC(nn.Module):
                         hasattr(block, "_fsdp_wrapped_module")
                         and isinstance(block._fsdp_wrapped_module, ResBlock)
                     ):
-                        if cnet is not None and lr_guide is None:
+                        # if cnet is not None and lr_guide is None:
                             # if cnet is not None :
-                            next_cnet = cnet()
-                            if next_cnet is not None:
+                            # next_cnet = cnet()
+                            # if next_cnet is not None:
 
-                                x = x + nn.functional.interpolate(
-                                    next_cnet.float(),
-                                    size=x.shape[-2:],
-                                    mode="bilinear",
-                                    align_corners=True,
-                                )
+                            #    x = x + nn.functional.interpolate(
+                            #        next_cnet.float(),
+                            #        size=x.shape[-2:],
+                            #        mode="bilinear",
+                            #        align_corners=True,
+                             #   )
                         x = block(x)
                     elif isinstance(block, AttnBlock) or (
                         hasattr(block, "_fsdp_wrapped_module")
@@ -423,7 +417,7 @@ class StageC(nn.Module):
         level_outputs,
         r_embed,
         clip,
-        cnet=None,
+        # cnet=None,
         require_ff=False,
         agg_f=None,
         r_emb_lite=None,
@@ -453,16 +447,16 @@ class StageC(nn.Module):
                                 align_corners=True,
                             )
 
-                        if cnet is not None and agg_f is None:
-                            next_cnet = cnet()
-                            if next_cnet is not None:
+                        #if cnet is not None and agg_f is None:
+                        #    next_cnet = cnet()
+                        #    if next_cnet is not None:
 
-                                x = x + nn.functional.interpolate(
-                                    next_cnet.float(),
-                                    size=x.shape[-2:],
-                                    mode="bilinear",
-                                    align_corners=True,
-                                )
+                        #        x = x + nn.functional.interpolate(
+                        #            next_cnet.float(),
+                        #            size=x.shape[-2:],
+                        #            mode="bilinear",
+                        #            align_corners=True,
+                        #        )
 
                         x = block(x, skip)
                     elif isinstance(block, AttnBlock) or (
@@ -537,8 +531,8 @@ class StageC(nn.Module):
 
         x = self.embedding(x)
 
-        if cnet is not None:
-            cnet = ControlNetDeliverer(cnet)
+       # if cnet is not None:
+       #     cnet = ControlNetDeliverer(cnet)
 
         if not reuire_f:
             level_outputs = self._down_encode(
