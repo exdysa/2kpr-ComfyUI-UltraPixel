@@ -164,7 +164,7 @@ class StageC(nn.Module):
         clip = self.clip_norm(clip)
         return clip
 
-    def _down_encode(self, x, r_embed, clip, cnet=None):
+    def _down_encode(self, x, r_embed, clip): #cnet=None
         level_outputs = []
         block_group = zip(self.down_blocks, self.down_downscalers, self.down_repeat_mappers)
         for down_block, downscaler, repmap in block_group:
@@ -174,11 +174,11 @@ class StageC(nn.Module):
                     if isinstance(block, ResBlock) or (
                             hasattr(block, '_fsdp_wrapped_module') and isinstance(block._fsdp_wrapped_module,
                                                                                   ResBlock)):
-                        if cnet is not None:
-                            next_cnet = cnet()
-                            if next_cnet is not None:
-                                x = x + nn.functional.interpolate(next_cnet, size=x.shape[-2:], mode='bilinear',
-                                                                  align_corners=True)
+                        # if cnet is not None:
+                        #     next_cnet = cnet()
+                        #     if next_cnet is not None:
+                         #        x = x + nn.functional.interpolate(next_cnet, size=x.shape[-2:], mode='bilinear',
+                         #                                          align_corners=True)
                         x = block(x)
                     elif isinstance(block, AttnBlock) or (
                             hasattr(block, '_fsdp_wrapped_module') and isinstance(block._fsdp_wrapped_module,
@@ -195,7 +195,7 @@ class StageC(nn.Module):
             level_outputs.insert(0, x)
         return level_outputs
 
-    def _up_decode(self, level_outputs, r_embed, clip, cnet=None):
+    def _up_decode(self, level_outputs, r_embed, clip): #cnet=None
         x = level_outputs[0]
         block_group = zip(self.up_blocks, self.up_upscalers, self.up_repeat_mappers)
         for i, (up_block, upscaler, repmap) in enumerate(block_group):
@@ -208,11 +208,11 @@ class StageC(nn.Module):
                         if skip is not None and (x.size(-1) != skip.size(-1) or x.size(-2) != skip.size(-2)):
                             x = torch.nn.functional.interpolate(x.float(), skip.shape[-2:], mode='bilinear',
                                                                 align_corners=True)
-                        if cnet is not None:
-                            next_cnet = cnet()
-                            if next_cnet is not None:
-                                x = x + nn.functional.interpolate(next_cnet, size=x.shape[-2:], mode='bilinear',
-                                                                  align_corners=True)
+                        # if cnet is not None:
+                        #    next_cnet = cnet()
+                        #    if next_cnet is not None:
+                        #        x = x + nn.functional.interpolate(next_cnet, size=x.shape[-2:], mode='bilinear',
+                        #                                          align_corners=True)
                         x = block(x, skip)
                     elif isinstance(block, AttnBlock) or (
                             hasattr(block, '_fsdp_wrapped_module') and isinstance(block._fsdp_wrapped_module,
@@ -229,7 +229,7 @@ class StageC(nn.Module):
             x = upscaler(x)
         return x
 
-    def forward(self, x, r, clip_text, clip_text_pooled, clip_img, cnet=None, **kwargs):
+    def forward(self, x, r, clip_text, clip_text_pooled, clip_img, **kwargs): ##cnet=None, 
         # Process the conditioning embeddings
         r_embed = self.gen_r_embedding(r)
         for c in self.t_conds:
@@ -239,10 +239,10 @@ class StageC(nn.Module):
 
         # Model Blocks
         x = self.embedding(x)
-        if cnet is not None:
-            cnet = ControlNetDeliverer(cnet)
-        level_outputs = self._down_encode(x, r_embed, clip, cnet)
-        x = self._up_decode(level_outputs, r_embed, clip, cnet)
+       # if cnet is not None:
+       #     cnet = ControlNetDeliverer(cnet)
+        level_outputs = self._down_encode(x, r_embed, clip) #cnet
+        x = self._up_decode(level_outputs, r_embed, clip) #cnet
         return self.clf(x)
 
     def update_weights_ema(self, src_model, beta=0.999):

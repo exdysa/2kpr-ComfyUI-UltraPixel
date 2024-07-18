@@ -9,8 +9,8 @@ class StageB(nn.Module):
     def __init__(self, c_in=4, c_out=4, c_r=64, patch_size=2, c_cond=1280, c_hidden=[320, 640, 1280, 1280],
                  nhead=[-1, -1, 20, 20], blocks=[[2, 6, 28, 6], [6, 28, 6, 2]],
                  block_repeat=[[1, 1, 1, 1], [3, 3, 2, 2]], level_config=['CT', 'CT', 'CTA', 'CTA'], c_clip=1280,
-                 c_clip_seq=4, c_effnet=16, c_pixels=3, kernel_size=3, dropout=[0, 0, 0.1, 0.1], self_attn=True,
-                 t_conds=['sca']):
+                 c_clip_seq=4, c_pixels=3, kernel_size=3, dropout=[0, 0, 0.1, 0.1], self_attn=True,
+                 t_conds=['sca']): #c_effnet=16, 
         super().__init__()
         self.c_r = c_r
         self.t_conds = t_conds
@@ -21,12 +21,12 @@ class StageB(nn.Module):
             self_attn = [self_attn] * len(c_hidden)
 
         # CONDITIONING
-        self.effnet_mapper = nn.Sequential(
-            nn.Conv2d(c_effnet, c_hidden[0] * 4, kernel_size=1),
-            nn.GELU(),
-            nn.Conv2d(c_hidden[0] * 4, c_hidden[0], kernel_size=1),
-            LayerNorm2d(c_hidden[0], elementwise_affine=False, eps=1e-6)
-        )
+        #self.effnet_mapper = nn.Sequential(
+        #    nn.Conv2d(c_effnet, c_hidden[0] * 4, kernel_size=1),
+        #    nn.GELU(),
+        #    nn.Conv2d(c_hidden[0] * 4, c_hidden[0], kernel_size=1),
+         #   LayerNorm2d(c_hidden[0], elementwise_affine=False, eps=1e-6)
+        #)
         self.pixels_mapper = nn.Sequential(
             nn.Conv2d(c_pixels, c_hidden[0] * 4, kernel_size=1),
             nn.GELU(),
@@ -115,8 +115,8 @@ class StageB(nn.Module):
         # --- WEIGHT INIT ---
         self.apply(self._init_weights)  # General init
         nn.init.normal_(self.clip_mapper.weight, std=0.02)  # conditionings
-        nn.init.normal_(self.effnet_mapper[0].weight, std=0.02)  # conditionings
-        nn.init.normal_(self.effnet_mapper[2].weight, std=0.02)  # conditionings
+        #nn.init.normal_(self.effnet_mapper[0].weight, std=0.02)  # conditionings
+        #nn.init.normal_(self.effnet_mapper[2].weight, std=0.02)  # conditionings
         nn.init.normal_(self.pixels_mapper[0].weight, std=0.02)  # conditionings
         nn.init.normal_(self.pixels_mapper[2].weight, std=0.02)  # conditionings
         torch.nn.init.xavier_uniform_(self.embedding[1].weight, 0.02)  # inputs
@@ -210,8 +210,8 @@ class StageB(nn.Module):
                     x = repmap[j](x)
             x = upscaler(x)
         return x
-
-    def forward(self, x, r, effnet, clip, pixels=None, **kwargs):
+                            #effnet
+    def forward(self, x, r, clip, pixels=None, **kwargs):
         if pixels is None:
             pixels = x.new_zeros(x.size(0), 3, 8, 8)
 
@@ -224,8 +224,8 @@ class StageB(nn.Module):
 
         # Model Blocks
         x = self.embedding(x)
-        x = x + self.effnet_mapper(
-            nn.functional.interpolate(effnet.float(), size=x.shape[-2:], mode='bilinear', align_corners=True))
+       # x = x + self.effnet_mapper(
+       #     nn.functional.interpolate(effnet.float(), size=x.shape[-2:], mode='bilinear', align_corners=True))
         x = x + nn.functional.interpolate(self.pixels_mapper(pixels).float(), size=x.shape[-2:], mode='bilinear',
                                           align_corners=True)
         level_outputs = self._down_encode(x, r_embed, clip)
